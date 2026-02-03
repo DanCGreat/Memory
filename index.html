@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Сканер</title>
+  <!-- Telegram Web App SDK -->
+  <script async src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- HTML5 QR Code -->
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: transparent;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  #scanner-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+  }
+  /* Верхняя и нижняя чёрные зоны */
+  .zone {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    background: black;
+    z-index: 1;
+  }
+  .zone.top { top: 0; height: 33.3333%; }
+  .zone.bottom { bottom: 0; height: 33.3333%; }
+
+  /* Камера за зонами */
+  #reader {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+    background: transparent;
+  }
+
+  /* Центральная рамка 16:9 */
+  .scan-frame {
+    position: absolute;
+    top: 33.3333%;
+    left: 0;
+    width: 100%;
+    height: 33.3333%;
+    border: 4px solid red;
+    border-radius: 8px;
+    z-index: 2;
+    background: transparent;
+  }
+
+  /* Пульсирующая линия по центру рамки */
+  .scan-line {
+    position: absolute;
+    top: calc(33.3333% + 16.6667%);
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: red;
+    transform: translateY(-50%);
+    animation: pulse 1.5s ease-in-out infinite;
+    opacity: 0.6;
+    z-index: 3;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.2; }
+    50%      { opacity: 1; }
+  }
+/* Убираем серый фон у видео */
+  #reader video {
+    background-color: black !important;
+  }
+  /* Убираем затемнение по бокам от html5-qrcode */
+  .qr-shaded-region,
+  #reader__scan_region {
+    background: transparent !important;
+  }
+</style>
+</head>
+<body>
+  <div id="scanner-container">
+    <div id="reader"></div>
+    <div class="zone top"></div>
+    <div class="zone bottom"></div>
+    <div class="scan-frame"></div>
+    <div class="scan-line"></div>
+  </div>
+  <script>
+    window.Telegram?.WebApp?.ready();
+    function qrboxSize() {
+      const w = Math.floor(window.innerWidth * 0.8);
+      const h = Math.floor(w * (1/ (16/9)));
+      return { width: w, height: h };
+    }
+    const html5QrCode = new Html5Qrcode("reader");
+    let audioCtx = null;
+    function initAudio() {
+      if (audioCtx) return;
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
+      } catch (e) {}
+    }
+    function playBeep() {
+      try {
+        if (!audioCtx) initAudio();
+        if (!audioCtx) return;
+        if (audioCtx.state === "suspended") {
+          audioCtx.resume();
+        }
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = 1200;
+        gain.gain.value = 0.08;
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        setTimeout(() => {
+          osc.stop();
+        }, 80);
+      } catch (e) {}
+    }
+    document.addEventListener("touchstart", initAudio, { once: true });
+    document.addEventListener("click", initAudio, { once: true });
+    html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: qrboxSize(), formatsToSupport: [
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.UPC_E,
+          Html5QrcodeSupportedFormats.ITF
+        ]
+      },
+      decodedText => {
+        if (window.Telegram.WebApp.sendData) {
+          window.Telegram.WebApp.sendData(decodedText);
+          playBeep();
+        }
+      }, errorMessage => {}
+    ).catch(err => console.error(err));
+  </script>
+</body>
+</html>

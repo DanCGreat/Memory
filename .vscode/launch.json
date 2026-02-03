@@ -1,0 +1,16 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Бот: bot.py",
+      "type": "debugpy",
+      "request": "launch",
+      "python": "C:\\BasepackBot\\.venv\\Scripts\\python.exe",
+      "program": "C:\\BasepackBot\\bot.py",
+      "cwd": "C:\\BasepackBot",
+      "console": "integratedTerminal"
+    }
+  ]
+}
+
+

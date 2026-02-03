@@ -1,0 +1,6 @@
+python-telegram-bot>=20.0,<22.0
+python-dotenv>=1.0
+requests>=2.0
+gspread>=6.0
+google-auth>=2.0
+PyMuPDF>=1.23

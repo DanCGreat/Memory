@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual env
+.venv/
+
+# Secrets
+Project.env
+my-project-main-463510-1da399d0ee21.json
+
+# Local data/logs
+Bug_log.txt
+service_stdout.log
+service_stderr.log
+*.log
+*.bak
+sheet_*.pdf
+
+tag_cache.json

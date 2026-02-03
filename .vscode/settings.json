@@ -1,0 +1,15 @@
+{
+  "python.defaultInterpreterPath": "C:\\BasepackBot\\.venv\\Scripts\\python.exe",
+  "python-envs.pythonProjects": [
+    {
+      "path": "",
+      "envManager": "ms-python.python:system",
+      "packageManager": "ms-python.python:pip"
+    }
+  ],
+  "git.decorations.enabled": true,
+  "scm.diffDecorations": "all",
+  "scm.diffDecorationsGutterWidth": 2
+}
+
+
