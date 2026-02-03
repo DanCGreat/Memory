@@ -44,6 +44,7 @@ from google_sheets import (
     get_order_balance,
     get_order_net_by_date,
     get_spool_counts,
+    clear_last_user_spool_number,
     mark_last_user_row_error,
     summarize_order,
     summarize_orders_by_date,
@@ -690,6 +691,12 @@ async def process_code(update: Update, context: ContextTypes.DEFAULT_TYPE, code:
         return
     if is_effective_test_mode(update.effective_user.id):
         mark_last_user_row_error(user_id, DEVICES[lrp_id]["log_sheet_name"])
+        clear_last_user_spool_number(user_id, DEVICES[lrp_id]["log_sheet_name"])
+        if spool_number is not None:
+            seq_key = "spool_seq_trash" if is_trash else "spool_seq_ok"
+            seq = state.get(seq_key)
+            if isinstance(seq, int):
+                state[seq_key] = max(0, seq - 1)
     order_line = f"Заказ: {order}\n" if order else ""
     nom_line = f"{order_nomenclature}\n" if order_nomenclature else ""
 
@@ -935,6 +942,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"✅ Заказ: {order_code}\n{nomenclature}",
                 reply_markup=spool_keyboard()
             )
+            await send_message_with_retry(context, update.effective_chat.id, MSG_PROCESSING)
             try:
                 state["balance"] = await _run_sheet_op(get_order_balance, order_code)
                 state["net_today"] = await _ensure_net_today(state, order_code)
@@ -1067,6 +1075,7 @@ async def webapp_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"✅ Заказ: {order_code}\n{nomenclature}",
                 reply_markup=spool_keyboard()
             )
+            await send_message_with_retry(context, chat_id, MSG_PROCESSING)
             try:
                 state["balance"] = await _run_sheet_op(get_order_balance, order_code)
                 state["net_today"] = await _ensure_net_today(state, order_code)

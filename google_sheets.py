@@ -262,6 +262,26 @@ def mark_last_user_row_error(user_id: int, sheet_name: str = "Log") -> bool:
     except Exception as e:
         print(f"Ошибка пометки Eror для пользователя {user_id}: {e}")
         return False
+
+def clear_last_user_spool_number(user_id: int, sheet_name: str = "Log") -> bool:
+    """
+    Очищает колонку J у последней строки пользователя.
+    """
+    try:
+        sheet = get_worksheet(sheet_name)
+        values = sheet.get_all_values()
+        user_rows = [
+            (idx + 1, row) for idx, row in enumerate(values)
+            if len(row) >= 4 and str(row[3]).strip() == str(user_id)
+        ]
+        if not user_rows:
+            return False
+        last_index, _last_row = user_rows[-1]
+        sheet.update_cell(last_index, 10, "")
+        return True
+    except Exception as e:
+        print(f"Ошибка очистки номера бобины для пользователя {user_id}: {e}")
+        return False
 def _parse_float(value: str) -> float:
     value = (value or "").strip().replace(",", ".")
     try:
