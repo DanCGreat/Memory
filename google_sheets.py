@@ -213,11 +213,13 @@ def append_weight_row(
     net_weight_kg: float,
     user_id: int,
     sheet_name: str = "Log",
-    comment: str | None = None
+    comment: str | None = None,
+    spool_number: int | None = None
 ):
     """
     Добавляет строку взвешивания:
-    A=номер заказа, B=брутто, C=время, D=user_id, F=тара, G=нетто, H=номенклатура.
+    A=номер заказа, B=брутто, C=время, D=user_id, F=тара, G=нетто, H=номенклатура,
+    I=комментарий, J=порядковый номер бобины.
     """
     try:
         sheet = get_worksheet(sheet_name)
@@ -231,7 +233,8 @@ def append_weight_row(
             tare_weight_kg,
             net_weight_kg,
             nomenclature,
-            comment or ""
+            comment or "",
+            spool_number if spool_number is not None else ""
         ]
         _ensure_date_column_format(sheet)
         _append_row_with_retry(sheet, row)
@@ -265,6 +268,35 @@ def _parse_float(value: str) -> float:
         return float(value)
     except ValueError:
         return 0.0
+
+def get_spool_counts(order_code: str, sheet_name: str = "Log") -> tuple[int, int]:
+    """
+    Возвращает (ok_count, trash_count) для заказа по листу.
+    Учитываются только строки без Eror в колонке E.
+    """
+    if not order_code:
+        return (0, 0)
+    sheet = get_worksheet(sheet_name)
+    cols = _batch_get_with_retry(sheet, ["A:A", "E:E", "I:I"])
+    col_a = cols[0] if len(cols) > 0 else []
+    col_e = cols[1] if len(cols) > 1 else []
+    col_i = cols[2] if len(cols) > 2 else []
+    max_len = max(len(col_a), len(col_e), len(col_i))
+    ok_count = 0
+    trash_count = 0
+    for idx in range(1, max_len):
+        a = col_a[idx][0].strip() if idx < len(col_a) and col_a[idx] else ""
+        if a != order_code:
+            continue
+        e = col_e[idx][0].strip() if idx < len(col_e) and col_e[idx] else ""
+        if e:
+            continue
+        i = col_i[idx][0].strip() if idx < len(col_i) and col_i[idx] else ""
+        if i == "Trash":
+            trash_count += 1
+        else:
+            ok_count += 1
+    return (ok_count, trash_count)
 
 def _parse_date_cell(value: str) -> date | None:
     value = (value or "").strip()

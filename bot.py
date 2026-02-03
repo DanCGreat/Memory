@@ -43,6 +43,7 @@ from google_sheets import (
     find_nomenclature,
     get_order_balance,
     get_order_net_by_date,
+    get_spool_counts,
     mark_last_user_row_error,
     summarize_order,
     summarize_orders_by_date,
@@ -570,7 +571,9 @@ async def select_lrp(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "trash_comment": False,
         "balance": None,
         "net_today": None,
-        "net_today_date": None
+        "net_today_date": None,
+        "spool_seq_ok": None,
+        "spool_seq_trash": None
     }
 
     await send_message_with_retry(context, update.effective_chat.id, 
@@ -631,6 +634,46 @@ async def process_code(update: Update, context: ContextTypes.DEFAULT_TYPE, code:
 
     order = state.get("order")
     order_nomenclature = state.get("nomenclature")
+    is_trash = state.get("trash_comment")
+    spool_number = None
+    if is_trash:
+        seq = state.get("spool_seq_trash")
+        if seq is None:
+            try:
+                ok_cnt, trash_cnt = await _run_sheet_op(
+                    get_spool_counts,
+                    order,
+                    DEVICES[lrp_id]["log_sheet_name"]
+                )
+                state["spool_seq_ok"] = ok_cnt
+                state["spool_seq_trash"] = trash_cnt
+                seq = trash_cnt
+            except Exception as e:
+                logging.exception("Spool count calc failed: %s", e)
+                seq = None
+        if seq is not None:
+            seq += 1
+            state["spool_seq_trash"] = seq
+            spool_number = seq
+    else:
+        seq = state.get("spool_seq_ok")
+        if seq is None:
+            try:
+                ok_cnt, trash_cnt = await _run_sheet_op(
+                    get_spool_counts,
+                    order,
+                    DEVICES[lrp_id]["log_sheet_name"]
+                )
+                state["spool_seq_ok"] = ok_cnt
+                state["spool_seq_trash"] = trash_cnt
+                seq = ok_cnt
+            except Exception as e:
+                logging.exception("Spool count calc failed: %s", e)
+                seq = None
+        if seq is not None:
+            seq += 1
+            state["spool_seq_ok"] = seq
+            spool_number = seq
     write_ok = append_weight_row(
         order,
         order_nomenclature or "",
@@ -639,7 +682,8 @@ async def process_code(update: Update, context: ContextTypes.DEFAULT_TYPE, code:
         net_weight,
         user_id,
         DEVICES[lrp_id]["log_sheet_name"],
-        comment="Trash" if state.get("trash_comment") else None
+        comment="Trash" if state.get("trash_comment") else None,
+        spool_number=spool_number
     )
     if not write_ok:
         await context.bot.send_message(chat_id, "Запись данных не удалась, повторите взвешивание⚠️")
@@ -649,7 +693,6 @@ async def process_code(update: Update, context: ContextTypes.DEFAULT_TYPE, code:
     order_line = f"Заказ: {order}\n" if order else ""
     nom_line = f"{order_nomenclature}\n" if order_nomenclature else ""
 
-    is_trash = state.get("trash_comment")
     prefix = "⛔ БРАК\n" if is_trash else ""
     msg = (
         f"{prefix}"
@@ -837,6 +880,18 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     state["net_today"] = net_today
                     state["net_today_date"] = today
                     await _send_balance_message(update, context, state.get("balance"), net_today)
+            if order and result.get("order") == order:
+                if result.get("is_trash"):
+                    seq_key = "spool_seq_trash"
+                else:
+                    seq_key = "spool_seq_ok"
+                seq = state.get(seq_key)
+                if isinstance(seq, int):
+                    if result.get("action") == "delete":
+                        seq = max(0, seq - 1)
+                    elif result.get("action") == "restore":
+                        seq += 1
+                    state[seq_key] = seq
         return
 
     if text == "🔄 Сменить номер заказа":
@@ -848,6 +903,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         state["balance"] = None
         state["net_today"] = None
         state["net_today_date"] = None
+        state["spool_seq_ok"] = None
+        state["spool_seq_trash"] = None
         await send_message_with_retry(context, update.effective_chat.id, 
             "Введите номер заказа 📥",
             reply_markup=order_keyboard()
@@ -871,6 +928,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             state["balance"] = None
             state["net_today"] = None
             state["net_today_date"] = None
+            state["spool_seq_ok"] = None
+            state["spool_seq_trash"] = None
 
             await send_message_with_retry(context, update.effective_chat.id, 
                 f"✅ Заказ: {order_code}\n{nomenclature}",
@@ -879,6 +938,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             try:
                 state["balance"] = await _run_sheet_op(get_order_balance, order_code)
                 state["net_today"] = await _ensure_net_today(state, order_code)
+                ok_cnt, trash_cnt = await _run_sheet_op(
+                    get_spool_counts,
+                    order_code,
+                    DEVICES[lrp_id]["log_sheet_name"]
+                )
+                state["spool_seq_ok"] = ok_cnt
+                state["spool_seq_trash"] = trash_cnt
             except SheetsUnavailableError:
                 await send_message_with_retry(context, update.effective_chat.id, MSG_SHEETS_UNAVAILABLE)
             except Exception as e:
@@ -994,6 +1060,8 @@ async def webapp_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             state["balance"] = None
             state["net_today"] = None
             state["net_today_date"] = None
+            state["spool_seq_ok"] = None
+            state["spool_seq_trash"] = None
             await context.bot.send_message(
                 chat_id,
                 f"✅ Заказ: {order_code}\n{nomenclature}",
@@ -1002,6 +1070,13 @@ async def webapp_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             try:
                 state["balance"] = await _run_sheet_op(get_order_balance, order_code)
                 state["net_today"] = await _ensure_net_today(state, order_code)
+                ok_cnt, trash_cnt = await _run_sheet_op(
+                    get_spool_counts,
+                    order_code,
+                    DEVICES[lrp_id]["log_sheet_name"]
+                )
+                state["spool_seq_ok"] = ok_cnt
+                state["spool_seq_trash"] = trash_cnt
             except SheetsUnavailableError:
                 await send_message_with_retry(context, chat_id, MSG_SHEETS_UNAVAILABLE)
             except Exception as e:

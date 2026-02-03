@@ -131,6 +131,7 @@ async def delete_last_entry(update: Update, context: ContextTypes.DEFAULT_TYPE, 
         }
     else:
         sheet.update_cell(last_row_index, 5, "Eror")
+        sheet.update_cell(last_row_index, 10, "")
         await reply(f"❌ Удалено:\nКод: {code}\nВес: {weight}")
         return {
             "action": "delete",
