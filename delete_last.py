@@ -120,6 +120,10 @@ async def delete_last_entry(update: Update, context: ContextTypes.DEFAULT_TYPE, 
 
     if eror_value == "Eror":
         sheet.update_cell(last_row_index, 5, "")
+        saved_seq = last_user_row[10] if len(last_user_row) >= 11 else ""
+        if saved_seq:
+            sheet.update_cell(last_row_index, 10, saved_seq)
+            sheet.update_cell(last_row_index, 11, "")
         await reply(f"↩️ Отмена удаления:\nКод: {code}\nВес: {weight}")
         return {
             "action": "restore",
@@ -131,6 +135,9 @@ async def delete_last_entry(update: Update, context: ContextTypes.DEFAULT_TYPE, 
         }
     else:
         sheet.update_cell(last_row_index, 5, "Eror")
+        current_seq = last_user_row[9] if len(last_user_row) >= 10 else ""
+        if current_seq:
+            sheet.update_cell(last_row_index, 11, current_seq)
         sheet.update_cell(last_row_index, 10, "")
         await reply(f"❌ Удалено:\nКод: {code}\nВес: {weight}")
         return {
@@ -141,4 +148,3 @@ async def delete_last_entry(update: Update, context: ContextTypes.DEFAULT_TYPE, 
             "net": net_weight,
             "is_trash": is_trash
         }
-
