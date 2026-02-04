@@ -67,7 +67,7 @@ def _parse_float(value: str) -> float | None:
         return None
 
 # Удаление последней записи (универсальная функция)
-async def delete_last_entry(update: Update, context: ContextTypes.DEFAULT_TYPE, sheet_name: str = "Log"):
+async def delete_last_entry(update: Update, context: ContextTypes.DEFAULT_TYPE, sheet_name: str):
     # Определяем источник: обычное сообщение или callback кнопка
     if update.callback_query:
         user_id = str(update.callback_query.from_user.id)

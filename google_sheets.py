@@ -212,7 +212,7 @@ def append_weight_row(
     tare_weight_kg: float,
     net_weight_kg: float,
     user_id: int,
-    sheet_name: str = "Log",
+    sheet_name: str,
     comment: str | None = None,
     spool_number: int | None = None
 ):
@@ -243,7 +243,7 @@ def append_weight_row(
         print(f"❌ Ошибка записи взвешивания в {sheet_name}: {e}")
         return False
 
-def mark_last_user_row_error(user_id: int, sheet_name: str = "Log") -> bool:
+def mark_last_user_row_error(user_id: int, sheet_name: str) -> bool:
     """
     Помечает последнюю строку пользователя значением 'Eror' в колонке E.
     """
@@ -263,7 +263,7 @@ def mark_last_user_row_error(user_id: int, sheet_name: str = "Log") -> bool:
         print(f"Ошибка пометки Eror для пользователя {user_id}: {e}")
         return False
 
-def clear_last_user_spool_number(user_id: int, sheet_name: str = "Log") -> bool:
+def clear_last_user_spool_number(user_id: int, sheet_name: str) -> bool:
     """
     Очищает колонку J у последней строки пользователя.
     """
@@ -289,7 +289,7 @@ def _parse_float(value: str) -> float:
     except ValueError:
         return 0.0
 
-def get_spool_counts(order_code: str, sheet_name: str = "Log") -> tuple[int, int]:
+def get_spool_counts(order_code: str, sheet_name: str) -> tuple[int, int]:
     """
     Возвращает (ok_count, trash_count) для заказа по листу.
     Учитываются только строки без Eror в колонке E.
