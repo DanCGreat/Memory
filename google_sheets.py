@@ -400,7 +400,11 @@ def summarize_order(order_code: str, sheet_names: list[str]) -> tuple[float, flo
         raise SheetsUnavailableError("Failed to read any sheets.")
     return gross_sum, net_sum, count, nomenclature
 
-def summarize_orders_by_date(target_date: date, sheet_names: list[str]) -> dict[str, dict]:
+def summarize_orders_by_date(
+    target_date: date,
+    sheet_names: list[str],
+    cutoff_hour: int | None = None
+) -> dict[str, dict]:
     summaries: dict[str, dict] = {}
     read_ok = 0
     for sheet_name in sheet_names:
@@ -427,7 +431,13 @@ def summarize_orders_by_date(target_date: date, sheet_names: list[str]) -> dict[
                 continue
 
             c = col_c[idx][0].strip() if idx < len(col_c) and col_c[idx] else ""
-            row_date = _parse_date_cell(c)
+            if cutoff_hour is None:
+                row_date = _parse_date_cell(c)
+            else:
+                row_dt = _parse_datetime_cell(c)
+                if row_dt is None:
+                    continue
+                row_date = (row_dt - timedelta(hours=cutoff_hour)).date()
             if row_date != target_date:
                 continue
 

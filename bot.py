@@ -159,7 +159,12 @@ async def send_order_summary(update: Update, context: ContextTypes.DEFAULT_TYPE,
 async def send_date_report(update: Update, context: ContextTypes.DEFAULT_TYPE, report_date: date):
     reply_to = update.message.message_id if update.message else None
     try:
-        summaries = await _run_sheet_op(summarize_orders_by_date, report_date, LOG_SHEETS)
+        summaries = await _run_sheet_op(
+            summarize_orders_by_date,
+            report_date,
+            LOG_SHEETS,
+            BUSINESS_DAY_CUTOFF_HOUR
+        )
     except SheetsUnavailableError:
         await send_message_with_retry(
             context,
