@@ -364,6 +364,7 @@ async def _send_balance_message(
         _format_balance_message(balance, net_today),
         reply_to_message_id=reply_to
     )
+    await send_message_with_retry(context, update.effective_chat.id, "📷 Отсканируйте шпулю.")
 
 async def _ensure_net_today(state: dict, order_code: str) -> float | None:
     if not order_code:
@@ -989,7 +990,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 logging.exception("Balance calc failed: %s", e)
                 await send_message_with_retry(context, update.effective_chat.id, MSG_SHEETS_UNAVAILABLE)
             await _send_balance_message(update, context, state.get("balance"), state.get("net_today"))
-            await send_message_with_retry(context, update.effective_chat.id, "📷 Отсканируйте шпулю.")
         _start_pending_input(chat_id, user_id, "order_number", update, context, text, handler)
         return
 
@@ -1127,7 +1127,6 @@ async def webapp_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 logging.exception("Balance calc failed: %s", e)
                 await send_message_with_retry(context, chat_id, MSG_SHEETS_UNAVAILABLE)
             await _send_balance_message(update, context, state.get("balance"), state.get("net_today"))
-            await context.bot.send_message(chat_id, "📷 Отсканируйте шпулю.")
         _start_pending_input(chat_id, user_id, "order_number", update, context, code, handler)
         return
 
