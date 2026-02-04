@@ -307,7 +307,8 @@ IN_FLIGHT_TIMEOUT_SEC = 300.0
 PENDING_STATE_TIMEOUT_SEC = 300.0
 DONE_DEDUP_WINDOW_SEC = 3.0
 last_done_sent: dict[tuple[int, int], float] = {}
-MSG_PROCESSING = "\u0420\u0430\u0441\u0447\u0435\u0442 \u043e\u0441\u0442\u0430\u0442\u043a\u0430 \u043f\u043e \u0437\u0430\u043a\u0430\u0437\u0443 \u23f3"
+MSG_PROCESSING_COMMAND = "\u041e\u0431\u0440\u0430\u0431\u0430\u0442\u044b\u0432\u0430\u0435\u0442\u0441\u044f \u0437\u0430\u043f\u0440\u043e\u0441 \u23f3"
+MSG_PROCESSING_BALANCE = "\u0420\u0430\u0441\u0447\u0435\u0442 \u043e\u0441\u0442\u0430\u0442\u043a\u0430 \u043f\u043e \u0437\u0430\u043a\u0430\u0437\u0443 \u23f3"
 MSG_RETRY = "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0434\u0430\u043d\u043d\u044b\u0435 \u0437\u0430\u043d\u043e\u0432\u043e \U0001f501"
 MSG_BUSY = "\u0417\u0430\u043f\u0440\u043e\u0441 \u0443\u0436\u0435 \u0432\u044b\u043f\u043e\u043b\u043d\u044f\u0435\u0442\u0441\u044f. \u0414\u043e\u0436\u0434\u0438\u0442\u0435\u0441\u044c \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043d\u0438\u044f.\U0001f552"
 MSG_TIMEOUT = "\u0417\u0430\u043f\u0440\u043e\u0441 \u0441\u0431\u0440\u043e\u0448\u0435\u043d \u043f\u043e \u0442\u0430\u0439\u043c\u0430\u0443\u0442\u0443. \u041f\u043e\u043f\u0440\u043e\u0431\u0443\u0439\u0442\u0435 \u0441\u043d\u043e\u0432\u0430.\u23f0"
@@ -813,7 +814,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 return
             in_flight_requests.add(key)
             asyncio.create_task(reset_in_flight_after_timeout(chat_id, user_id, context))
-            await send_message_with_retry(context, update.effective_chat.id, MSG_PROCESSING)
+            await send_message_with_retry(context, update.effective_chat.id, MSG_PROCESSING_COMMAND)
             try:
                 await send_order_summary(update, context, order_code)
                 await send_done_if_needed(update, context)
@@ -841,7 +842,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 return
             in_flight_requests.add(key)
             asyncio.create_task(reset_in_flight_after_timeout(chat_id, user_id, context))
-            await send_message_with_retry(context, update.effective_chat.id, MSG_PROCESSING)
+            await send_message_with_retry(context, update.effective_chat.id, MSG_PROCESSING_COMMAND)
             try:
                 await send_date_report(update, context, report_date)
                 await send_done_if_needed(update, context)
@@ -968,7 +969,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"✅ Заказ: {order_code}\n{nomenclature}",
                 reply_markup=spool_keyboard()
             )
-            await send_message_with_retry(context, update.effective_chat.id, MSG_PROCESSING)
+            await send_message_with_retry(context, update.effective_chat.id, MSG_PROCESSING_BALANCE)
             try:
                 state["balance"] = await _run_sheet_op(get_order_balance, order_code)
                 state["net_today"] = await _ensure_net_today(state, order_code)
@@ -993,6 +994,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     async def handler(code_text: str):
+        await send_message_with_retry(context, update.effective_chat.id, MSG_PROCESSING_BALANCE)
         await process_code(update, context, code_text, lrp_id)
     _start_pending_input(chat_id, user_id, "spool_scan", update, context, text, handler)
     return
@@ -1026,7 +1028,7 @@ async def handle_group_order_text(update: Update, context: ContextTypes.DEFAULT_
                 return
             in_flight_requests.add(key)
             asyncio.create_task(reset_in_flight_after_timeout(chat_id, user_id, context))
-            await send_message_with_retry(context, update.effective_chat.id, MSG_PROCESSING)
+            await send_message_with_retry(context, update.effective_chat.id, MSG_PROCESSING_COMMAND)
             try:
                 await send_order_summary(update, context, order_code)
                 await send_done_if_needed(update, context)
@@ -1054,7 +1056,7 @@ async def handle_group_order_text(update: Update, context: ContextTypes.DEFAULT_
                 return
             in_flight_requests.add(key)
             asyncio.create_task(reset_in_flight_after_timeout(chat_id, user_id, context))
-            await send_message_with_retry(context, update.effective_chat.id, MSG_PROCESSING)
+            await send_message_with_retry(context, update.effective_chat.id, MSG_PROCESSING_COMMAND)
             try:
                 await send_date_report(update, context, report_date)
                 await send_done_if_needed(update, context)
@@ -1105,7 +1107,7 @@ async def webapp_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"✅ Заказ: {order_code}\n{nomenclature}",
                 reply_markup=spool_keyboard()
             )
-            await send_message_with_retry(context, chat_id, MSG_PROCESSING)
+            await send_message_with_retry(context, chat_id, MSG_PROCESSING_BALANCE)
             try:
                 state["balance"] = await _run_sheet_op(get_order_balance, order_code)
                 state["net_today"] = await _ensure_net_today(state, order_code)
