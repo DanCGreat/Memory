@@ -18,7 +18,7 @@ DEVICES = {
             "paper_width_mm": 70,
             "paper_height_mm": 40
         },
-         "log_sheet_name": "Log"  # <-- лист для логирования
+         "log_sheet_name": "Log1/8"  # <-- лист для логирования
     },
     2: {
         "name": "ЛРП 2",
@@ -39,7 +39,7 @@ DEVICES = {
             "paper_width_mm": 70,
             "paper_height_mm": 40
         },
-         "log_sheet_name": "Log 2"  # <-- лист для логирования
+         "log_sheet_name": "Log4"  # <-- лист для логирования
     },
     3:{
         "name": "ЛРП 3",
@@ -60,7 +60,7 @@ DEVICES = {
             "paper_width_mm": 70,
             "paper_height_mm": 40
         },
-         "log_sheet_name": "Log 3"  # <-- лист для логирования
+         "log_sheet_name": "Log5"  # <-- лист для логирования
     },
     4: {
         "name": "ЛРП 4",
@@ -81,7 +81,7 @@ DEVICES = {
             "paper_width_mm": 70,
             "paper_height_mm": 40
         },
-         "log_sheet_name": "Log 4"  # <-- лист для логирования
+         "log_sheet_name": "Log6"  # <-- лист для логирования
     },
     5: {
         "name": "ЛРП 5",
@@ -102,7 +102,7 @@ DEVICES = {
             "paper_width_mm": 70,
             "paper_height_mm": 40
         },
-         "log_sheet_name": "Log 5"  # <-- лист для логирования
+         "log_sheet_name": "Log7"  # <-- лист для логирования
     },
     6: {
         "name": "ЛРП 6",
@@ -123,7 +123,7 @@ DEVICES = {
             "paper_width_mm": 70,
             "paper_height_mm": 40
         },
-         "log_sheet_name": "Log 6"  # <-- лист для логирования
+         "log_sheet_name": "Log9"  # <-- лист для логирования
     },
     7: {
         "name": "ЛРП 7",
@@ -144,6 +144,6 @@ DEVICES = {
             "paper_width_mm": 70,
             "paper_height_mm": 40
         },
-         "log_sheet_name": "Log 7"  # <-- лист для логирования
+         "log_sheet_name": "Log10"  # <-- лист для логирования
     },
 }
