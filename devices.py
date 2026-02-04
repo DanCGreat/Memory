@@ -1,6 +1,6 @@
 DEVICES = {
     1: {
-        "name": "ЛРП 1",
+        "name": "ЛРП 1/8",
 
         "scale": {
             "type": "tcp",
@@ -21,7 +21,7 @@ DEVICES = {
          "log_sheet_name": "Log1/8"  # <-- лист для логирования
     },
     2: {
-        "name": "ЛРП 2",
+        "name": "ЛРП 4",
 
         "scale": {
             "type": "tcp",
@@ -42,7 +42,7 @@ DEVICES = {
          "log_sheet_name": "Log4"  # <-- лист для логирования
     },
     3:{
-        "name": "ЛРП 3",
+        "name": "ЛРП 5",
 
         "scale": {
             "type": "tcp",
@@ -63,7 +63,7 @@ DEVICES = {
          "log_sheet_name": "Log5"  # <-- лист для логирования
     },
     4: {
-        "name": "ЛРП 4",
+        "name": "ЛРП 6",
 
         "scale": {
             "type": "tcp",
@@ -84,7 +84,7 @@ DEVICES = {
          "log_sheet_name": "Log6"  # <-- лист для логирования
     },
     5: {
-        "name": "ЛРП 5",
+        "name": "ЛРП 7",
 
         "scale": {
             "type": "tcp",
@@ -105,7 +105,7 @@ DEVICES = {
          "log_sheet_name": "Log7"  # <-- лист для логирования
     },
     6: {
-        "name": "ЛРП 6",
+        "name": "ЛРП 9",
 
         "scale": {
             "type": "tcp",
@@ -126,7 +126,7 @@ DEVICES = {
          "log_sheet_name": "Log9"  # <-- лист для логирования
     },
     7: {
-        "name": "ЛРП 7",
+        "name": "ЛРП 10",
 
         "scale": {
             "type": "tcp",

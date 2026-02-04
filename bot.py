@@ -552,11 +552,13 @@ async def select_lrp(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     try:
-        match = re.search(r"(\d+)", text)
-        if not match:
-            raise ValueError
-        lrp_id = int(match.group(1))
-        if lrp_id not in DEVICES:
+        lrp_id = None
+        normalized = text.strip()
+        for device_id, device in DEVICES.items():
+            if device.get("name") == normalized:
+                lrp_id = device_id
+                break
+        if lrp_id is None:
             raise ValueError
     except ValueError:
         user_states.pop(chat_id, None)

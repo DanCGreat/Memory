@@ -8,7 +8,8 @@ def lrp_keyboard() -> ReplyKeyboardMarkup:
     """
     Клавиатура для выбора ЛРП (1-7).
     """
-    buttons = [[KeyboardButton(f"ЛРП {i}")] for i in range(1, 8)]
+    labels = ["ЛРП 1/8", "ЛРП 4", "ЛРП 5", "ЛРП 6", "ЛРП 7", "ЛРП 9", "ЛРП 10"]
+    buttons = [[KeyboardButton(label)] for label in labels]
     return ReplyKeyboardMarkup(buttons, resize_keyboard=True)
 
 # === Уровень 2: заказ ===
