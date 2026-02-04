@@ -21,6 +21,14 @@ def safe_print(text: str):
 
 def mm_to_pt(value_mm: float) -> float:
     return value_mm * 72.0 / 25.4
+
+def _sanitize_suffix(value: str) -> str:
+    if not value:
+        return ""
+    invalid = '<>:"/\\|?*'
+    cleaned = "".join("_" if ch in invalid else ch for ch in value.strip())
+    cleaned = " ".join(cleaned.split())
+    return cleaned.replace(" ", "_")
 def _safe_remove(path: str, retries: int = 3, delay_sec: float = 0.5) -> bool:
     for attempt in range(retries):
         try:
@@ -86,7 +94,8 @@ def print_google_sheet_pdf(
 
     # 2) Сохраняем PDF с фиксированным именем
     base_dir = os.path.dirname(__file__)
-    suffix = f"_{file_suffix}" if file_suffix is not None else ""
+    safe_suffix = _sanitize_suffix(str(file_suffix)) if file_suffix is not None else ""
+    suffix = f"_{safe_suffix}" if safe_suffix else ""
     pdf_path = os.path.join(base_dir, f"sheet_original{suffix}.pdf")
     with open(pdf_path, "wb") as f:
         f.write(resp.content)

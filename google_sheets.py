@@ -289,24 +289,40 @@ def _parse_float(value: str) -> float:
     except ValueError:
         return 0.0
 
-def get_spool_counts(order_code: str, sheet_name: str) -> tuple[int, int]:
+def get_spool_counts(
+    order_code: str,
+    sheet_name: str,
+    target_date: date,
+    cutoff_hour: int | None = None
+) -> tuple[int, int]:
     """
-    Возвращает (ok_count, trash_count) для заказа по листу.
+    Возвращает (ok_count, trash_count) для заказа по листу за бизнес-день.
     Учитываются только строки без Eror в колонке E.
     """
     if not order_code:
         return (0, 0)
     sheet = get_worksheet(sheet_name)
-    cols = _batch_get_with_retry(sheet, ["A:A", "E:E", "I:I"])
+    cols = _batch_get_with_retry(sheet, ["A:A", "C:C", "E:E", "I:I"])
     col_a = cols[0] if len(cols) > 0 else []
-    col_e = cols[1] if len(cols) > 1 else []
-    col_i = cols[2] if len(cols) > 2 else []
-    max_len = max(len(col_a), len(col_e), len(col_i))
+    col_c = cols[1] if len(cols) > 1 else []
+    col_e = cols[2] if len(cols) > 2 else []
+    col_i = cols[3] if len(cols) > 3 else []
+    max_len = max(len(col_a), len(col_c), len(col_e), len(col_i))
     ok_count = 0
     trash_count = 0
     for idx in range(1, max_len):
         a = col_a[idx][0].strip() if idx < len(col_a) and col_a[idx] else ""
         if a != order_code:
+            continue
+        c = col_c[idx][0].strip() if idx < len(col_c) and col_c[idx] else ""
+        if cutoff_hour is None:
+            row_date = _parse_date_cell(c)
+        else:
+            row_dt = _parse_datetime_cell(c)
+            if row_dt is None:
+                continue
+            row_date = (row_dt - timedelta(hours=cutoff_hour)).date()
+        if row_date != target_date:
             continue
         e = col_e[idx][0].strip() if idx < len(col_e) and col_e[idx] else ""
         if e:
