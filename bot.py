@@ -383,6 +383,27 @@ async def _ensure_net_today(state: dict, order_code: str) -> float | None:
     state["net_today_date"] = today
     return net_today
 
+async def _ensure_spool_seq(state: dict, order_code: str, lrp_id: int) -> None:
+    if not order_code:
+        return
+    today = _business_date()
+    if (
+        state.get("spool_seq_date") == today
+        and state.get("spool_seq_ok") is not None
+        and state.get("spool_seq_trash") is not None
+    ):
+        return
+    ok_cnt, trash_cnt = await _run_sheet_op(
+        get_spool_counts,
+        order_code,
+        DEVICES[lrp_id]["log_sheet_name"],
+        today,
+        BUSINESS_DAY_CUTOFF_HOUR
+    )
+    state["spool_seq_ok"] = ok_cnt
+    state["spool_seq_trash"] = trash_cnt
+    state["spool_seq_date"] = today
+
 def parse_tare_weight_kg(text: str) -> float | None:
     value = text.strip()
     if value.isdigit() and len(value) in (12, 13):
@@ -653,54 +674,24 @@ async def process_code(update: Update, context: ContextTypes.DEFAULT_TYPE, code:
     spool_number = None
     if is_trash:
         seq = state.get("spool_seq_trash")
-        today = _business_date()
-        if state.get("spool_seq_date") != today:
-            state["spool_seq_ok"] = None
-            state["spool_seq_trash"] = None
-            state["spool_seq_date"] = today
-        if seq is None:
-            try:
-                ok_cnt, trash_cnt = await _run_sheet_op(
-                    get_spool_counts,
-                    order,
-                    DEVICES[lrp_id]["log_sheet_name"],
-                    today,
-                    BUSINESS_DAY_CUTOFF_HOUR
-                )
-                state["spool_seq_ok"] = ok_cnt
-                state["spool_seq_trash"] = trash_cnt
-                state["spool_seq_date"] = today
-                seq = trash_cnt
-            except Exception as e:
-                logging.exception("Spool count calc failed: %s", e)
-                seq = None
+        try:
+            await _ensure_spool_seq(state, order, lrp_id)
+            seq = state.get("spool_seq_trash")
+        except Exception as e:
+            logging.exception("Spool count calc failed: %s", e)
+            seq = None
         if seq is not None:
             seq += 1
             state["spool_seq_trash"] = seq
             spool_number = seq
     else:
         seq = state.get("spool_seq_ok")
-        today = _business_date()
-        if state.get("spool_seq_date") != today:
-            state["spool_seq_ok"] = None
-            state["spool_seq_trash"] = None
-            state["spool_seq_date"] = today
-        if seq is None:
-            try:
-                ok_cnt, trash_cnt = await _run_sheet_op(
-                    get_spool_counts,
-                    order,
-                    DEVICES[lrp_id]["log_sheet_name"],
-                    today,
-                    BUSINESS_DAY_CUTOFF_HOUR
-                )
-                state["spool_seq_ok"] = ok_cnt
-                state["spool_seq_trash"] = trash_cnt
-                state["spool_seq_date"] = today
-                seq = ok_cnt
-            except Exception as e:
-                logging.exception("Spool count calc failed: %s", e)
-                seq = None
+        try:
+            await _ensure_spool_seq(state, order, lrp_id)
+            seq = state.get("spool_seq_ok")
+        except Exception as e:
+            logging.exception("Spool count calc failed: %s", e)
+            seq = None
         if seq is not None:
             seq += 1
             state["spool_seq_ok"] = seq
@@ -984,16 +975,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             try:
                 state["balance"] = await _run_sheet_op(get_order_balance, order_code)
                 state["net_today"] = await _ensure_net_today(state, order_code)
-                ok_cnt, trash_cnt = await _run_sheet_op(
-                    get_spool_counts,
-                    order_code,
-                    DEVICES[lrp_id]["log_sheet_name"],
-                    _business_date(),
-                    BUSINESS_DAY_CUTOFF_HOUR
-                )
-                state["spool_seq_ok"] = ok_cnt
-                state["spool_seq_trash"] = trash_cnt
-                state["spool_seq_date"] = _business_date()
+                await _ensure_spool_seq(state, order_code, lrp_id)
             except SheetsUnavailableError:
                 await send_message_with_retry(context, update.effective_chat.id, MSG_SHEETS_UNAVAILABLE)
             except Exception as e:
@@ -1121,16 +1103,7 @@ async def webapp_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             try:
                 state["balance"] = await _run_sheet_op(get_order_balance, order_code)
                 state["net_today"] = await _ensure_net_today(state, order_code)
-                ok_cnt, trash_cnt = await _run_sheet_op(
-                    get_spool_counts,
-                    order_code,
-                    DEVICES[lrp_id]["log_sheet_name"],
-                    _business_date(),
-                    BUSINESS_DAY_CUTOFF_HOUR
-                )
-                state["spool_seq_ok"] = ok_cnt
-                state["spool_seq_trash"] = trash_cnt
-                state["spool_seq_date"] = _business_date()
+                await _ensure_spool_seq(state, order_code, lrp_id)
             except SheetsUnavailableError:
                 await send_message_with_retry(context, chat_id, MSG_SHEETS_UNAVAILABLE)
             except Exception as e:
