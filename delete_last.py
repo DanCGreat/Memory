@@ -120,6 +120,8 @@ async def delete_last_entry(update: Update, context: ContextTypes.DEFAULT_TYPE, 
 
     if eror_value == "Eror":
         sheet.update_cell(last_row_index, 5, "")
+        if len(last_user_row) >= 9 and last_user_row[8].strip() == "Trash":
+            sheet.update_cell(last_row_index, 9, "")
         saved_seq = last_user_row[10] if len(last_user_row) >= 11 else ""
         if saved_seq:
             sheet.update_cell(last_row_index, 10, saved_seq)

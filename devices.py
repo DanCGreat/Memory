@@ -74,7 +74,7 @@ DEVICES = {
 
         "printer": {
             "type": "google_sheet_pdf",
-            "printer_name": "BM_Small",
+            "printer_name": "LRP6",
             "spreadsheet_id": "1VGkMiMiguF3iA6T4Dq6XNO3hSZVVNylxuzNueWc720A",
             "sheet_gid": "622139839",
             "foxit_path": r"C:\Program Files (x86)\Foxit Software\Foxit PDF Reader\FoxitPDFReader.exe",
