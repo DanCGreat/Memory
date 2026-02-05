@@ -309,6 +309,7 @@ DONE_DEDUP_WINDOW_SEC = 3.0
 last_done_sent: dict[tuple[int, int], float] = {}
 MSG_PROCESSING_COMMAND = "\u041e\u0431\u0440\u0430\u0431\u0430\u0442\u044b\u0432\u0430\u0435\u0442\u0441\u044f \u0437\u0430\u043f\u0440\u043e\u0441 \u23f3"
 MSG_PROCESSING_BALANCE = "\u0420\u0430\u0441\u0447\u0435\u0442 \u043e\u0441\u0442\u0430\u0442\u043a\u0430 \u043f\u043e \u0437\u0430\u043a\u0430\u0437\u0443 \u23f3"
+MSG_PROCESSING_WEIGHT = "\u041f\u043e\u043b\u0443\u0447\u0435\u043d\u0438\u0435 \u0432\u0435\u0441\u0430 \u2696\ufe0f"
 MSG_RETRY = "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0434\u0430\u043d\u043d\u044b\u0435 \u0437\u0430\u043d\u043e\u0432\u043e \U0001f501"
 MSG_BUSY = "\u0417\u0430\u043f\u0440\u043e\u0441 \u0443\u0436\u0435 \u0432\u044b\u043f\u043e\u043b\u043d\u044f\u0435\u0442\u0441\u044f. \u0414\u043e\u0436\u0434\u0438\u0442\u0435\u0441\u044c \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043d\u0438\u044f.\U0001f552"
 MSG_TIMEOUT = "\u0417\u0430\u043f\u0440\u043e\u0441 \u0441\u0431\u0440\u043e\u0448\u0435\u043d \u043f\u043e \u0442\u0430\u0439\u043c\u0430\u0443\u0442\u0443. \u041f\u043e\u043f\u0440\u043e\u0431\u0443\u0439\u0442\u0435 \u0441\u043d\u043e\u0432\u0430.\u23f0"
@@ -355,9 +356,12 @@ async def _send_balance_message(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
     balance: float | None,
-    net_today: float | None
+    net_today: float | None,
+    reply_to_message_id: int | None = None
 ):
-    reply_to = update.message.message_id if update.message else None
+    reply_to = reply_to_message_id if reply_to_message_id is not None else (
+        update.message.message_id if update.message else None
+    )
     await send_message_with_retry(
         context,
         update.effective_chat.id,
@@ -739,7 +743,7 @@ async def process_code(update: Update, context: ContextTypes.DEFAULT_TYPE, code:
     )
     state["trash_comment"] = False
 
-    await context.bot.send_message(chat_id, msg, reply_markup=spool_keyboard())
+    sent_msg = await context.bot.send_message(chat_id, msg, reply_markup=spool_keyboard())
     balance = state.get("balance")
     if balance is not None:
         today = _business_date()
@@ -758,7 +762,13 @@ async def process_code(update: Update, context: ContextTypes.DEFAULT_TYPE, code:
             net_today += net_weight
             state["net_today"] = net_today
             state["net_today_date"] = today
-        await _send_balance_message(update, context, balance, net_today)
+        await _send_balance_message(
+            update,
+            context,
+            balance,
+            net_today,
+            reply_to_message_id=sent_msg.message_id
+        )
     if not is_effective_test_mode(update.effective_user.id):
         await context.bot.send_message(chat_id=FORWARD_CHAT_ID, text=msg)
 
@@ -994,7 +1004,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     async def handler(code_text: str):
-        await send_message_with_retry(context, update.effective_chat.id, MSG_PROCESSING_BALANCE)
+        await send_message_with_retry(context, update.effective_chat.id, MSG_PROCESSING_WEIGHT)
         await process_code(update, context, code_text, lrp_id)
     _start_pending_input(chat_id, user_id, "spool_scan", update, context, text, handler)
     return
@@ -1107,7 +1117,7 @@ async def webapp_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"✅ Заказ: {order_code}\n{nomenclature}",
                 reply_markup=spool_keyboard()
             )
-            await send_message_with_retry(context, chat_id, MSG_PROCESSING_BALANCE)
+            await send_message_with_retry(context, chat_id, MSG_PROCESSING_COMMAND)
             try:
                 state["balance"] = await _run_sheet_op(get_order_balance, order_code)
                 state["net_today"] = await _ensure_net_today(state, order_code)
