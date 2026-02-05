@@ -915,17 +915,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     state["net_today_date"] = today
                     await _send_balance_message(update, context, state.get("balance"), net_today)
             if order and result.get("order") == order:
-                if result.get("is_trash"):
-                    seq_key = "spool_seq_trash"
-                else:
-                    seq_key = "spool_seq_ok"
-                seq = state.get(seq_key)
-                if isinstance(seq, int):
-                    if result.get("action") == "delete":
-                        seq = max(0, seq - 1)
-                    elif result.get("action") == "restore":
-                        seq += 1
-                    state[seq_key] = seq
+                # Re-sync numbering from the sheet to avoid drift after delete/restore.
+                state["spool_seq_ok"] = None
+                state["spool_seq_trash"] = None
+                state["spool_seq_date"] = None
+                try:
+                    await _ensure_spool_seq(state, order, lrp_id)
+                except Exception as e:
+                    logging.exception("Spool count refresh failed: %s", e)
         return
 
     if text == "🔄 Сменить номер заказа":
