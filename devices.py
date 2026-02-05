@@ -25,14 +25,14 @@ DEVICES = {
 
         "scale": {
             "type": "tcp",
-            "host": "192.168.88.11",
+            "host": "192.168.88.16",
             "port": 8235,
             "duration": 1.0
         },
 
         "printer": {
             "type": "google_sheet_pdf",
-            "printer_name": "BM_Small",
+            "printer_name": "TSC TE206",
             "spreadsheet_id": "1VGkMiMiguF3iA6T4Dq6XNO3hSZVVNylxuzNueWc720A",
             "sheet_gid": "1986137884",
             "foxit_path": r"C:\Program Files (x86)\Foxit Software\Foxit PDF Reader\FoxitPDFReader.exe",
@@ -109,14 +109,14 @@ DEVICES = {
 
         "scale": {
             "type": "tcp",
-            "host": "192.168.88.16",
+            "host": "192.168.88.11",
             "port": 8235,
             "duration": 1.0
         },
 
         "printer": {
             "type": "google_sheet_pdf",
-            "printer_name": "TSC TE206",
+            "printer_name": "BM_Small",
             "spreadsheet_id": "1VGkMiMiguF3iA6T4Dq6XNO3hSZVVNylxuzNueWc720A",
             "sheet_gid": "40319985",
             "foxit_path": r"C:\Program Files (x86)\Foxit Software\Foxit PDF Reader\FoxitPDFReader.exe",
