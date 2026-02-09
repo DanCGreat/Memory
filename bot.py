@@ -722,6 +722,7 @@ async def process_code(update: Update, context: ContextTypes.DEFAULT_TYPE, code:
     nom_line = f"{order_nomenclature}\n" if order_nomenclature else ""
 
     prefix = "⛔ БРАК\n" if is_trash else ""
+    spool_line = f"\nБоббина №: {spool_number}" if spool_number is not None else ""
     msg = (
         f"{prefix}"
         f"✅ Данные записаны\n"
@@ -731,6 +732,7 @@ async def process_code(update: Update, context: ContextTypes.DEFAULT_TYPE, code:
         f"Брутто: {weight:.2f} кг\n"
         f"Тара: {tare_weight:.2f} кг\n"
         f"Нетто: {net_weight:.2f} кг"
+        f"{spool_line}"
     )
     state["trash_comment"] = False
 
