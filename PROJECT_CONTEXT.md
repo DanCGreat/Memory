@@ -205,6 +205,7 @@ Test-NetConnection api.telegram.org -Port 443
 - Короткий changelog.
 
 ## 18. Последние изменения
+- 2026-02-13: отключено автоматическое форматирование Google Sheets при записи (удален вызов `_ensure_date_column_format`), формат таблиц теперь полностью управляется вручную в 1С/Google Sheets.
 - 2026-02-13: вынесен `spreadsheet_id` принтера в env-переменную `PRINTER_SPREADSHEET_ID` (`devices.py`).
 - 2026-02-13: обновлен `EDITOR_USER_IDS.txt`.
 - 2026-02-13: создан и расширен `PROJECT_CONTEXT.md` для переноса полного контекста между ПК/сессиями.
