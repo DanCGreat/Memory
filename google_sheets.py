@@ -31,7 +31,6 @@ SPREADSHEET: gspread.Spreadsheet | None = None
 WORKSHEET_CACHE: dict[str, gspread.Worksheet] = {}
 CACHE_TTL_SEC = 3600
 LAST_CACHE_RESET = 0.0
-FORMATTED_SHEETS: set[str] = set()
 
 def get_gspread_client() -> gspread.Client:
     """Возвращает авторизованный клиент Google Sheets (singleton)."""
@@ -52,11 +51,10 @@ def _get_spreadsheet(client: gspread.Client) -> gspread.Spreadsheet:
     return SPREADSHEET
 
 def _clear_sheet_cache() -> None:
-    global SPREADSHEET, WORKSHEET_CACHE, LAST_CACHE_RESET, FORMATTED_SHEETS
+    global SPREADSHEET, WORKSHEET_CACHE, LAST_CACHE_RESET
     SPREADSHEET = None
     WORKSHEET_CACHE = {}
     LAST_CACHE_RESET = time.time()
-    FORMATTED_SHEETS = set()
 
 def _cache_expired() -> bool:
     return (time.time() - LAST_CACHE_RESET) >= CACHE_TTL_SEC
@@ -106,40 +104,6 @@ def _append_row_with_retry(sheet, row, retries: int = 5, base_delay: float = 0.5
             if attempt == retries - 1 or not _should_retry_api_error(e):
                 raise
             time.sleep(base_delay * (2 ** attempt))
-
-def _ensure_date_column_format(sheet) -> None:
-    if sheet.title in FORMATTED_SHEETS:
-        return
-    try:
-        spreadsheet = _get_spreadsheet(get_gspread_client())
-        body = {
-            "requests": [
-                {
-                    "repeatCell": {
-                        "range": {
-                            "sheetId": sheet.id,
-                            "startRowIndex": 0,
-                            "endRowIndex": sheet.row_count,
-                            "startColumnIndex": 2,
-                            "endColumnIndex": 3
-                        },
-                        "cell": {
-                            "userEnteredFormat": {
-                                "numberFormat": {
-                                    "type": "DATE",
-                                    "pattern": "dd.MM.yyyy"
-                                }
-                            }
-                        },
-                        "fields": "userEnteredFormat.numberFormat"
-                    }
-                }
-            ]
-        }
-        spreadsheet.batch_update(body)
-        FORMATTED_SHEETS.add(sheet.title)
-    except Exception as e:
-        print(f"Failed to apply date format for sheet {sheet.title}: {e}")
 
 def _batch_get_with_retry(sheet, ranges, retries: int = 5, base_delay: float = 0.5):
     for attempt in range(retries):
@@ -236,7 +200,6 @@ def append_weight_row(
             comment or "",
             spool_number if spool_number is not None else ""
         ]
-        _ensure_date_column_format(sheet)
         _append_row_with_retry(sheet, row)
         return True
     except Exception as e:
