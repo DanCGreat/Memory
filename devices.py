@@ -1,3 +1,7 @@
+import os
+
+PRINTER_SPREADSHEET_ID = os.getenv("PRINTER_SPREADSHEET_ID", "1VGkMiMiguF3iA6T4Dq6XNO3hSZVVNylxuzNueWc720A")
+
 DEVICES = {
     1: {
         "name": "ЛРП 1/8",
@@ -12,7 +16,7 @@ DEVICES = {
         "printer": {
             "type": "google_sheet_pdf",
             "printer_name": "TSC TE200",
-            "spreadsheet_id": "1VGkMiMiguF3iA6T4Dq6XNO3hSZVVNylxuzNueWc720A",
+            "spreadsheet_id": PRINTER_SPREADSHEET_ID,
             "sheet_gid": "375244764",
             "foxit_path": r"C:\Program Files (x86)\Foxit Software\Foxit PDF Reader\FoxitPDFReader.exe",
             "paper_width_mm": 70,
@@ -33,7 +37,7 @@ DEVICES = {
         "printer": {
             "type": "google_sheet_pdf",
             "printer_name": "TSC TE206",
-            "spreadsheet_id": "1VGkMiMiguF3iA6T4Dq6XNO3hSZVVNylxuzNueWc720A",
+            "spreadsheet_id": PRINTER_SPREADSHEET_ID,
             "sheet_gid": "1986137884",
             "foxit_path": r"C:\Program Files (x86)\Foxit Software\Foxit PDF Reader\FoxitPDFReader.exe",
             "paper_width_mm": 70,
@@ -54,7 +58,7 @@ DEVICES = {
         "printer": {
             "type": "google_sheet_pdf",
             "printer_name": "TSC TE203",
-            "spreadsheet_id": "1VGkMiMiguF3iA6T4Dq6XNO3hSZVVNylxuzNueWc720A",
+            "spreadsheet_id": PRINTER_SPREADSHEET_ID,
             "sheet_gid": "438787814",
             "foxit_path": r"C:\Program Files (x86)\Foxit Software\Foxit PDF Reader\FoxitPDFReader.exe",
             "paper_width_mm": 70,
@@ -75,7 +79,7 @@ DEVICES = {
         "printer": {
             "type": "google_sheet_pdf",
             "printer_name": "LRP6",
-            "spreadsheet_id": "1VGkMiMiguF3iA6T4Dq6XNO3hSZVVNylxuzNueWc720A",
+            "spreadsheet_id": PRINTER_SPREADSHEET_ID,
             "sheet_gid": "622139839",
             "foxit_path": r"C:\Program Files (x86)\Foxit Software\Foxit PDF Reader\FoxitPDFReader.exe",
             "paper_width_mm": 70,
@@ -96,7 +100,7 @@ DEVICES = {
         "printer": {
             "type": "google_sheet_pdf",
             "printer_name": "TSC TE205",
-            "spreadsheet_id": "1VGkMiMiguF3iA6T4Dq6XNO3hSZVVNylxuzNueWc720A",
+            "spreadsheet_id": PRINTER_SPREADSHEET_ID,
             "sheet_gid": "1493671096",
             "foxit_path": r"C:\Program Files (x86)\Foxit Software\Foxit PDF Reader\FoxitPDFReader.exe",
             "paper_width_mm": 70,
@@ -117,7 +121,7 @@ DEVICES = {
         "printer": {
             "type": "google_sheet_pdf",
             "printer_name": "TSC TE204",
-            "spreadsheet_id": "1VGkMiMiguF3iA6T4Dq6XNO3hSZVVNylxuzNueWc720A",
+            "spreadsheet_id": PRINTER_SPREADSHEET_ID,
             "sheet_gid": "40319985",
             "foxit_path": r"C:\Program Files (x86)\Foxit Software\Foxit PDF Reader\FoxitPDFReader.exe",
             "paper_width_mm": 70,
@@ -138,7 +142,7 @@ DEVICES = {
         "printer": {
             "type": "google_sheet_pdf",
             "printer_name": "TSC TE207",
-            "spreadsheet_id": "1VGkMiMiguF3iA6T4Dq6XNO3hSZVVNylxuzNueWc720A",
+            "spreadsheet_id": PRINTER_SPREADSHEET_ID,
             "sheet_gid": "1972169932",
             "foxit_path": r"C:\Program Files (x86)\Foxit Software\Foxit PDF Reader\FoxitPDFReader.exe",
             "paper_width_mm": 70,
