@@ -302,6 +302,7 @@ LOG_SHEETS = sorted({device["log_sheet_name"] for device in DEVICES.values()})
 test_notice_sent: set[int] = set()
 pending_inputs: dict[tuple[int, int], dict] = {}
 pending_state_tasks: dict[tuple[int, int], asyncio.Task] = {}
+spool_seq_locks: dict[tuple[int, str, date], asyncio.Lock] = {}
 PENDING_INPUT_WINDOW_SEC = 2.0
 IN_FLIGHT_TIMEOUT_SEC = 300.0
 PENDING_STATE_TIMEOUT_SEC = 300.0
@@ -335,6 +336,15 @@ async def _run_sheet_op(func, *args, **kwargs):
 def _business_date(dt: datetime | None = None) -> date:
     base = dt or datetime.now()
     return (base - timedelta(hours=BUSINESS_DAY_CUTOFF_HOUR)).date()
+
+
+def _get_spool_seq_lock(lrp_id: int, order_code: str, target_date: date) -> asyncio.Lock:
+    key = (lrp_id, order_code, target_date)
+    lock = spool_seq_locks.get(key)
+    if lock is None:
+        lock = asyncio.Lock()
+        spool_seq_locks[key] = lock
+    return lock
 
 
 
@@ -672,41 +682,41 @@ async def process_code(update: Update, context: ContextTypes.DEFAULT_TYPE, code:
     order_nomenclature = state.get("nomenclature")
     is_trash = state.get("trash_comment")
     spool_number = None
-    if is_trash:
-        seq = state.get("spool_seq_trash")
+    today = _business_date()
+    spool_lock = _get_spool_seq_lock(lrp_id, order, today)
+    async with spool_lock:
         try:
-            await _ensure_spool_seq(state, order, lrp_id)
-            seq = state.get("spool_seq_trash")
+            ok_cnt, trash_cnt = await _run_sheet_op(
+                get_spool_counts,
+                order,
+                DEVICES[lrp_id]["log_sheet_name"],
+                today,
+                BUSINESS_DAY_CUTOFF_HOUR,
+            )
+            if is_trash:
+                spool_number = trash_cnt + 1
+                state["spool_seq_trash"] = spool_number
+                state["spool_seq_ok"] = ok_cnt
+            else:
+                spool_number = ok_cnt + 1
+                state["spool_seq_ok"] = spool_number
+                state["spool_seq_trash"] = trash_cnt
+            state["spool_seq_date"] = today
         except Exception as e:
             logging.exception("Spool count calc failed: %s", e)
-            seq = None
-        if seq is not None:
-            seq += 1
-            state["spool_seq_trash"] = seq
-            spool_number = seq
-    else:
-        seq = state.get("spool_seq_ok")
-        try:
-            await _ensure_spool_seq(state, order, lrp_id)
-            seq = state.get("spool_seq_ok")
-        except Exception as e:
-            logging.exception("Spool count calc failed: %s", e)
-            seq = None
-        if seq is not None:
-            seq += 1
-            state["spool_seq_ok"] = seq
-            spool_number = seq
-    write_ok = append_weight_row(
-        order,
-        order_nomenclature or "",
-        weight,
-        tare_weight,
-        net_weight,
-        user_id,
-        DEVICES[lrp_id]["log_sheet_name"],
-        comment="Trash" if state.get("trash_comment") else None,
-        spool_number=spool_number
-    )
+            spool_number = None
+
+        write_ok = append_weight_row(
+            order,
+            order_nomenclature or "",
+            weight,
+            tare_weight,
+            net_weight,
+            user_id,
+            DEVICES[lrp_id]["log_sheet_name"],
+            comment="Trash" if state.get("trash_comment") else None,
+            spool_number=spool_number
+        )
     if not write_ok:
         await context.bot.send_message(chat_id, "Запись данных не удалась, повторите взвешивание⚠️")
         return
