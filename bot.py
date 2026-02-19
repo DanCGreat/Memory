@@ -269,6 +269,8 @@ root_logger.addHandler(log_handler)
 # Suppress successful HTTP request logs and avoid leaking bot token in URLs.
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("telegram").setLevel(logging.WARNING)
+# Hide bootstrap network-loop error spam (NetworkError/getaddrinfo) in service logs.
+logging.getLogger("telegram.ext._utils.networkloop").setLevel(logging.CRITICAL)
 
 NETWORK_LOG_THROTTLE_SEC = 3600.0
 _network_log_last: dict[str, float] = {}
@@ -1214,7 +1216,8 @@ def main():
             break
         except (TimedOut, NetworkError) as e:
             if attempt == 4:
-                raise
+                safe_print("Bot start skipped: Telegram network is unavailable.")
+                return
             _log_throttled_network(
                 logging.WARNING,
                 "run_polling_network",
