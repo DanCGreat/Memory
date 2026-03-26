@@ -3,141 +3,436 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Сканер</title>
-  <!-- Telegram Web App SDK -->
+  <title>Сканер штрихкода</title>
   <script async src="https://telegram.org/js/telegram-web-app.js"></script>
-  <!-- HTML5 QR Code -->
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body {
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    background: transparent;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  #scanner-container {
-    position: relative;
-    width: 100vw;
-    height: 100vh;
-  }
-  /* Верхняя и нижняя чёрные зоны */
-  .zone {
-    position: absolute;
-    left: 0;
-    width: 100%;
-    background: black;
-    z-index: 1;
-  }
-  .zone.top { top: 0; height: 33.3333%; }
-  .zone.bottom { bottom: 0; height: 33.3333%; }
+    :root {
+      --bg-0: #06080f;
+      --bg-1: #0d1321;
+      --bg-2: #15233a;
+      --accent: #00d084;
+      --accent-2: #18a0fb;
+      --danger: #ff4d4f;
+      --text: #ecf2ff;
+      --muted: #9aa7bf;
+      --glass: rgba(11, 19, 34, 0.62);
+      --glass-border: rgba(255, 255, 255, 0.16);
+      --shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+      --radius: 16px;
+    }
 
-  /* Камера за зонами */
-  #reader {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    z-index: 0;
-    background: transparent;
-  }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
-  /* Центральная рамка 16:9 */
-  .scan-frame {
-    position: absolute;
-    top: 33.3333%;
-    left: 0;
-    width: 100%;
-    height: 33.3333%;
-    border: 4px solid red;
-    border-radius: 8px;
-    z-index: 2;
-    background: transparent;
-  }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: "Segoe UI", "Trebuchet MS", system-ui, sans-serif;
+      color: var(--text);
+      background: radial-gradient(130% 95% at 10% 0%, #1d3358 0%, var(--bg-1) 45%, var(--bg-0) 100%);
+    }
 
-  /* Пульсирующая линия по центру рамки */
-  .scan-line {
-    position: absolute;
-    top: calc(33.3333% + 16.6667%);
-    left: 0;
-    width: 100%;
-    height: 4px;
-    background: red;
-    transform: translateY(-50%);
-    animation: pulse 1.5s ease-in-out infinite;
-    opacity: 0.6;
-    z-index: 3;
-  }
+    #app {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      isolation: isolate;
+    }
 
-  @keyframes pulse {
-    0%, 100% { opacity: 0.2; }
-    50%      { opacity: 1; }
-  }
-/* Убираем серый фон у видео */
-  #reader video {
-    background-color: black !important;
-  }
-  /* Убираем затемнение по бокам от html5-qrcode */
-  .qr-shaded-region,
-  #reader__scan_region {
-    background: transparent !important;
-  }
-</style>
+    #reader {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background: #000;
+    }
+
+    #reader video {
+      object-fit: cover !important;
+      width: 100% !important;
+      height: 100% !important;
+      filter: saturate(1.05) contrast(1.02);
+    }
+
+    #reader__dashboard,
+    #reader__status_span,
+    #reader__scan_region img,
+    #reader__scan_region svg {
+      display: none !important;
+    }
+
+    .shade {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      background:
+        linear-gradient(to bottom, rgba(6, 8, 15, 0.86) 0%, rgba(6, 8, 15, 0.24) 20%, rgba(6, 8, 15, 0.12) 46%, rgba(6, 8, 15, 0.24) 70%, rgba(6, 8, 15, 0.84) 100%);
+      pointer-events: none;
+    }
+
+    .beam-wrap {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: min(90vw, 560px);
+      aspect-ratio: 16 / 9;
+      transform: translate(-50%, -50%);
+      z-index: 3;
+      pointer-events: none;
+    }
+
+    .beam-frame {
+      width: 100%;
+      height: 100%;
+      border-radius: 18px;
+      border: 2px solid rgba(255, 255, 255, 0.28);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 0 0 1px rgba(0, 208, 132, 0.25), 0 12px 44px rgba(0, 0, 0, 0.45);
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0) 45%);
+    }
+
+    .beam-frame::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 3px;
+      transform: translateY(-50%);
+      background: linear-gradient(90deg, transparent 0%, rgba(0, 208, 132, 0.28) 12%, var(--accent) 52%, rgba(24, 160, 251, 0.9) 85%, transparent 100%);
+      box-shadow: 0 0 18px rgba(0, 208, 132, 0.55);
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+
+    .corner {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      border-color: #e8f2ff;
+      border-style: solid;
+      border-width: 0;
+      opacity: 0.92;
+    }
+
+    .corner.tl { top: 9px; left: 9px; border-top-width: 4px; border-left-width: 4px; border-radius: 10px 0 0 0; }
+    .corner.tr { top: 9px; right: 9px; border-top-width: 4px; border-right-width: 4px; border-radius: 0 10px 0 0; }
+    .corner.bl { bottom: 9px; left: 9px; border-bottom-width: 4px; border-left-width: 4px; border-radius: 0 0 0 10px; }
+    .corner.br { bottom: 9px; right: 9px; border-bottom-width: 4px; border-right-width: 4px; border-radius: 0 0 10px 0; }
+
+    .panel-top {
+      position: absolute;
+      top: max(10px, env(safe-area-inset-top));
+      left: 12px;
+      right: 12px;
+      z-index: 4;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--glass-border);
+      background: var(--glass);
+      backdrop-filter: blur(8px);
+      box-shadow: var(--shadow);
+      font-size: 14px;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 6px rgba(0, 208, 132, 0.22);
+      animation: ping 1.6s ease-out infinite;
+    }
+
+    .panel-bottom {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: max(12px, env(safe-area-inset-bottom));
+      z-index: 4;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: end;
+    }
+
+    .hint {
+      border-radius: var(--radius);
+      border: 1px solid var(--glass-border);
+      background: var(--glass);
+      backdrop-filter: blur(8px);
+      padding: 12px 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .hint-title {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      margin-bottom: 6px;
+    }
+
+    .hint-sub {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .actions {
+      display: grid;
+      gap: 8px;
+    }
+
+    .btn {
+      border: 1px solid var(--glass-border);
+      background: var(--glass);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 10px 12px;
+      min-width: 118px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      box-shadow: var(--shadow);
+      transition: transform .15s ease, border-color .15s ease, background .15s ease;
+    }
+
+    .btn:hover { transform: translateY(-1px); border-color: rgba(255, 255, 255, 0.32); }
+    .btn:active { transform: translateY(0); }
+    .btn.on { border-color: rgba(0, 208, 132, 0.7); background: rgba(0, 208, 132, 0.16); }
+
+    .toast {
+      position: absolute;
+      left: 50%;
+      top: calc(50% + min(90vw, 560px) * 0.32);
+      transform: translateX(-50%);
+      z-index: 5;
+      border: 1px solid var(--glass-border);
+      background: rgba(11, 19, 34, 0.78);
+      backdrop-filter: blur(8px);
+      border-radius: 12px;
+      padding: 8px 12px;
+      font-size: 13px;
+      color: #d7e9ff;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s ease;
+    }
+
+    .toast.show { opacity: 1; }
+
+    @keyframes ping {
+      0% { box-shadow: 0 0 0 0 rgba(0, 208, 132, 0.35); }
+      70% { box-shadow: 0 0 0 10px rgba(0, 208, 132, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(0, 208, 132, 0); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: .38; }
+      50% { opacity: 1; }
+    }
+
+    @media (max-width: 560px) {
+      .panel-bottom { grid-template-columns: 1fr; }
+      .actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .btn { min-width: 0; }
+    }
+  </style>
 </head>
 <body>
-  <div id="scanner-container">
+  <div id="app">
     <div id="reader"></div>
-    <div class="zone top"></div>
-    <div class="zone bottom"></div>
-    <div class="scan-frame"></div>
-    <div class="scan-line"></div>
+    <div class="shade"></div>
+
+    <div class="beam-wrap">
+      <div class="beam-frame">
+        <span class="corner tl"></span>
+        <span class="corner tr"></span>
+        <span class="corner bl"></span>
+        <span class="corner br"></span>
+      </div>
+    </div>
+
+    <div class="panel-top">
+      <div class="badge"><span class="dot"></span><span id="status">Камера запускается...</span></div>
+      <div class="badge" id="last-code-badge">Нет сканов</div>
+    </div>
+
+    <div class="panel-bottom">
+      <div class="hint">
+        <div class="hint-title">Наведите штрихкод в рамку</div>
+        <div class="hint-sub">Код отправится в Telegram автоматически сразу после распознавания.</div>
+      </div>
+      <div class="actions">
+        <button id="flash-btn" class="btn" type="button">Фонарик: выкл</button>
+        <button id="close-btn" class="btn" type="button">Закрыть</button>
+      </div>
+    </div>
+
+    <div id="toast" class="toast" aria-live="polite"></div>
   </div>
+
   <script>
     window.Telegram?.WebApp?.ready();
-    function qrboxSize() {
-      const w = Math.floor(window.innerWidth * 0.8);
-      const h = Math.floor(w * (1/ (16/9)));
-      return { width: w, height: h };
-    }
+    window.Telegram?.WebApp?.expand();
+
+    const statusEl = document.getElementById("status");
+    const lastCodeBadge = document.getElementById("last-code-badge");
+    const toastEl = document.getElementById("toast");
+    const flashBtn = document.getElementById("flash-btn");
+    const closeBtn = document.getElementById("close-btn");
+
     const html5QrCode = new Html5Qrcode("reader");
     let audioCtx = null;
+    let torchOn = false;
+
+    const DEBOUNCE_MS = 120;
+    const THROTTLE_MS = 700;
+    const DEDUP_WINDOW_MS = 2500;
+
+    let pendingScanTimer = null;
+    let pendingPayload = "";
+    let lastSentPayload = "";
+    let lastSentAt = 0;
+    let lastEmitAt = 0;
+
+    function setStatus(text) {
+      statusEl.textContent = text;
+    }
+
+    function showToast(text) {
+      toastEl.textContent = text;
+      toastEl.classList.add("show");
+      setTimeout(() => toastEl.classList.remove("show"), 900);
+    }
+
+    function qrboxSize() {
+      const maxW = Math.min(window.innerWidth * 0.88, 560);
+      const width = Math.floor(maxW);
+      const height = Math.floor(width / (16 / 9));
+      return { width, height };
+    }
+
     function initAudio() {
       if (audioCtx) return;
       try {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        audioCtx = new AudioContext();
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new Ctx();
       } catch (e) {}
     }
+
     function playBeep() {
       try {
         if (!audioCtx) initAudio();
         if (!audioCtx) return;
-        if (audioCtx.state === "suspended") {
-          audioCtx.resume();
-        }
+        if (audioCtx.state === "suspended") audioCtx.resume();
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-        osc.type = "sine";
-        osc.frequency.value = 1200;
-        gain.gain.value = 0.08;
+        osc.type = "triangle";
+        osc.frequency.value = 1180;
+        gain.gain.value = 0.06;
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.start();
-        setTimeout(() => {
-          osc.stop();
-        }, 80);
+        setTimeout(() => osc.stop(), 85);
       } catch (e) {}
     }
+
+    async function toggleTorch() {
+      try {
+        const capabilities = html5QrCode.getRunningTrackCapabilities?.();
+        if (!capabilities || !capabilities.torch) {
+          showToast("Фонарик не поддерживается");
+          return;
+        }
+        torchOn = !torchOn;
+        await html5QrCode.applyVideoConstraints({ advanced: [{ torch: torchOn }] });
+        flashBtn.textContent = `Фонарик: ${torchOn ? "вкл" : "выкл"}`;
+        flashBtn.classList.toggle("on", torchOn);
+      } catch (err) {
+        torchOn = false;
+        flashBtn.textContent = "Фонарик: выкл";
+        flashBtn.classList.remove("on");
+        showToast("Не удалось включить фонарик");
+      }
+    }
+
+    async function closeScanner() {
+      try {
+        await html5QrCode.stop();
+      } catch (e) {}
+      if (window.Telegram?.WebApp?.close) {
+        window.Telegram.WebApp.close();
+      }
+    }
+
+    function sendScan(payload) {
+      if (!window.Telegram?.WebApp?.sendData) {
+        setStatus("Ошибка: sendData недоступен");
+        return;
+      }
+
+      const now = Date.now();
+
+      if (now - lastEmitAt < THROTTLE_MS) {
+        return;
+      }
+
+      if (payload === lastSentPayload && (now - lastSentAt) < DEDUP_WINDOW_MS) {
+        setStatus("Дубликат пропущен");
+        return;
+      }
+
+      window.Telegram.WebApp.sendData(payload);
+      playBeep();
+      setStatus("Код отправлен");
+      lastCodeBadge.textContent = payload.length > 22 ? `${payload.slice(0, 22)}...` : payload;
+      showToast("Отправлено");
+
+      lastSentPayload = payload;
+      lastSentAt = now;
+      lastEmitAt = now;
+    }
+
+    function onScan(decodedText) {
+      const payload = (decodedText || "").trim();
+      if (!payload) return;
+
+      pendingPayload = payload;
+      if (pendingScanTimer) {
+        clearTimeout(pendingScanTimer);
+      }
+      pendingScanTimer = setTimeout(() => {
+        sendScan(pendingPayload);
+      }, DEBOUNCE_MS);
+    }
+
     document.addEventListener("touchstart", initAudio, { once: true });
     document.addEventListener("click", initAudio, { once: true });
+    flashBtn.addEventListener("click", toggleTorch);
+    closeBtn.addEventListener("click", closeScanner);
+
     html5QrCode.start(
       { facingMode: "environment" },
-      { fps: 10, qrbox: qrboxSize(), formatsToSupport: [
+      {
+        fps: 12,
+        qrbox: qrboxSize(),
+        aspectRatio: 16 / 9,
+        formatsToSupport: [
           Html5QrcodeSupportedFormats.CODE_128,
           Html5QrcodeSupportedFormats.CODE_39,
           Html5QrcodeSupportedFormats.EAN_13,
@@ -147,13 +442,16 @@
           Html5QrcodeSupportedFormats.ITF
         ]
       },
-      decodedText => {
-        if (window.Telegram.WebApp.sendData) {
-          window.Telegram.WebApp.sendData(decodedText);
-          playBeep();
-        }
-      }, errorMessage => {}
-    ).catch(err => console.error(err));
+      onScan,
+      () => {}
+    ).then(() => {
+      setStatus("Сканер готов");
+    }).catch((err) => {
+      console.error(err);
+      setStatus("Ошибка запуска камеры");
+      showToast("Доступ к камере не получен");
+    });
   </script>
 </body>
 </html>
+
